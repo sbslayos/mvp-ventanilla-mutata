@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVP Ventanilla Única - Alcaldía de Mutatá</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 antialiased h-screen overflow-hidden flex">
+
+    <!-- 1. PANTALLA DE LOGIN (Control de Acceso) -->
+    <div id="view-login" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <i class="fa-solid fa-building-columns text-5xl text-blue-600 mb-4"></i>
+                <h1 class="text-2xl font-bold text-gray-800">Alcaldía de Mutatá</h1>
+                <p class="text-sm text-gray-500">Sistema de Radicación (MVP)</p>
+            </div>
+            
+            <div id="login-error" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm text-center">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i> Usuario o contraseña incorrectos.
+            </div>
+
+            <form onsubmit="iniciarSesion(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" id="username" required class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: a.ferraro">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" id="password" required class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                    Ingresar al Sistema
+                </button>
+            </form>
+            <p class="text-xs text-center text-gray-400 mt-6">Credenciales demo: admin / 1234</p>
+        </div>
+    </div>
+
+    <!-- SIDEBAR (Navegación Principal) -->
+    <aside id="sidebar" class="w-64 bg-slate-800 text-white flex flex-col hidden">
+        <div class="p-6 border-b border-slate-700">
+            <h2 class="text-xl font-bold flex items-center"><i class="fa-solid fa-building-columns mr-3 text-blue-400"></i> Mutatá</h2>
+            <p class="text-xs text-slate-400 mt-1">Ventanilla Única V1.0</p>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="#" onclick="cambiarVista('radicacion')" id="nav-radicacion" class="block px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">
+                <i class="fa-solid fa-file-signature w-5"></i> Nueva Radicación
+            </a>
+            <a href="#" onclick="cambiarVista('tablero')" id="nav-tablero" class="block px-4 py-2 rounded hover:bg-slate-700 transition">
+                <i class="fa-solid fa-chart-pie w-5"></i> Tablero y Semáforo
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t border-slate-700">
+            <div class="flex items-center mb-4">
+                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold mr-3">AF</div>
+                <div>
+                    <p class="text-sm font-medium">Amed Ferraro</p>
+                    <p class="text-xs text-green-400">En línea</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesion()" class="w-full text-left text-sm text-red-400 hover:text-red-300 transition">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- AREA DE TRABAJO -->
+    <main id="main-content" class="flex-1 flex flex-col hidden bg-gray-50 h-full overflow-hidden">
+        
+        <!-- HEADER SUPERIOR -->
+        <header class="bg-white shadow-sm h-16 flex items-center justify-between px-8 border-b">
+            <h2 id="header-title" class="text-xl font-semibold text-gray-800">Radicación de Documentos</h2>
+            <div class="text-sm text-gray-500 font-medium"><i class="fa-regular fa-calendar mr-2"></i><span id="fecha-actual"></span></div>
+        </header>
+
+        <!-- CONTENEDOR DE VISTAS (Scrollable) -->
+        <div class="flex-1 overflow-y-auto p-8">
+
+            <!-- 2. PANTALLA: FORMULARIO DE RADICACIÓN (CU1) -->
+            <div id="view-radicacion" class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-800">Formulario Único de Ingreso</h3>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded border border-blue-200">Requisitos AGN 060</span>
+                    </div>
+                    
+                    <form id="form-radicar" onsubmit="procesarRadicacion(event)" class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento <span class="text-red-500">*</span></label>
+                                <select id="doc_tipo" required class="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+                                    <option value="">Seleccione el tipo documental...</option>
+                                    <option value="CEX">Comunicación Externa (PQR)</option>
+                                    <option value="CIN">Comunicación Interna</option>
+                                    <option value="DEC">Decreto Municipal</option>
+                                    <option value="RES">Resolución</option>
+                                    <option value="CIR">Circular</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Dependencia de Destino <span class="text-red-500">*</span></label>
+                                <select id="doc_dependencia" required class="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+                                    <option value="">Seleccione la secretaría...</option>
+                                    <option value="Despacho del Alcalde">Despacho del Alcalde</option>
+                                    <option value="Secretaría General">Secretaría General</option>
+                                    <option value="Secretaría de Planeación">Secretaría de Planeación</option>
+                                    <option value="Secretaría de Hacienda">Secretaría de Hacienda</option>
+                                    <option value="Secretaría de Obras">Secretaría de Obras Públicas</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Remitente (Ciudadano o Entidad) <span class="text-red-500">*</span></label>
+                            <input type="text" id="doc_remitente" required class="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre completo o Razón Social">
+                        </div>
+
+                        <div class="mb-8">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Asunto / Descripción <span class="text-red-500">*</span></label>
+                            <textarea id="doc_asunto" rows="3" required class="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Resumen claro del contenido del documento..."></textarea>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                            <p class="text-xs text-gray-500"><i class="fa-solid fa-circle-info mr-1"></i> El consecutivo se asignará automáticamente garantizando inmutabilidad.</p>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow-md transition">
+                                Generar Radicado <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 3. PANTALLA: CONSTANCIA DE RADICACIÓN (CU1 Inmutabilidad) -->
+            <div id="view-constancia" class="hidden max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden border-t-4 border-green-500">
+                    <div class="p-8 text-center bg-green-50/30">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200">
+                            <i class="fa-solid fa-check text-3xl text-green-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Radicación Exitosa</h2>
+                        <p class="text-sm text-gray-500 mt-1">El documento ha sido registrado en la base de datos (Ley 594 de 2000).</p>
+                    </div>
+                    
+                    <div class="p-8 border-t border-gray-100">
+                        <div class="bg-slate-50 rounded-lg p-6 border border-slate-200 text-center mb-6 shadow-inner">
+                            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-2">Número Único de Radicado</p>
+                            <p id="lbl-radicado" class="text-4xl font-mono font-bold text-blue-700 tracking-tight">---</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                            <div class="border-b border-gray-100 pb-2">
+                                <p class="text-gray-500 text-xs mb-1">Fecha y Hora de Recepción</p>
+                                <p id="lbl-fecha" class="font-medium text-gray-800">---</p>
+                            </div>
+                            <div class="border-b border-gray-100 pb-2">
+                                <p class="text-gray-500 text-xs mb-1">Funcionario Receptor</p>
+                                <p class="font-medium text-gray-800">Amed Ferraro</p>
+                            </div>
+                            <div class="border-b border-gray-100 pb-2">
+                                <p class="text-gray-500 text-xs mb-1">Remitente</p>
+                                <p id="lbl-remitente" class="font-medium text-gray-800">---</p>
+                            </div>
+                            <div class="border-b border-gray-100 pb-2">
+                                <p class="text-gray-500 text-xs mb-1">Dependencia Asignada</p>
+                                <p id="lbl-dependencia" class="font-medium text-gray-800">---</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 border-t border-gray-200 flex justify-center space-x-4">
+                        <button onclick="window.print()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 py-2 px-4 rounded font-medium transition">
+                            <i class="fa-solid fa-print mr-2"></i> Imprimir Tirilla
+                        </button>
+                        <button onclick="cambiarVista('radicacion')" class="bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 rounded font-medium shadow transition">
+                            <i class="fa-solid fa-plus mr-2"></i> Nuevo Radicado
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. PANTALLA: TABLERO DE CONTROL Y SEMÁFORO (CU2 y CU3) -->
+            <div id="view-tablero" class="hidden">
+                <div class="mb-6 flex justify-between items-end">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Control de Plazos Legales (Ley 1755 de 2015)</p>
+                        <div class="flex space-x-4">
+                            <div class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span><span class="text-xs font-medium text-gray-600">A tiempo</span></div>
+                            <div class="flex items-center"><span class="w-3 h-3 bg-orange-500 rounded-full mr-2"></span><span class="text-xs font-medium text-gray-600">Alerta (≤ 3 días)</span></div>
+                            <div class="flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span><span class="text-xs font-medium text-gray-600">Vencido / Mora</span></div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <input type="text" placeholder="Buscar radicado..." class="pl-8 pr-4 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">No. Radicado</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Recepción / Remitente</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Dependencia Asignada</th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Semáforo (Ley 1755)</th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Estado / Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-datos" class="bg-white divide-y divide-gray-200">
+                            <!-- Los datos se inyectarán aquí vía JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- SCRIPTS DE LÓGICA DEL PROTOTIPO -->
+    <script>
+        // --- 1. Inicialización y Fecha ---
+        const hoy = new Date();
+        document.getElementById('fecha-actual').innerText = hoy.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Base de datos simulada en memoria (Para el Tablero)
+        let expedientes = [
+            { rad: 'CEX202611020045', fecha: '02/11/2026', rem: 'Junta de Acción Comunal', dep: 'Sec. Planeación', diasRestantes: 7, estado: 'Radicado' },
+            { rad: 'CEX202610280112', fecha: '28/10/2026', rem: 'G. Martínez', dep: 'Despacho del Alcalde', diasRestantes: 2, estado: 'En Trámite' },
+            { rad: 'CEX202610150004', fecha: '15/10/2026', rem: 'Hospital Local Mutatá', dep: 'Sec. Salud', diasRestantes: -4, estado: 'Mora' }
+        ];
+
+        // --- 2. Lógica de Login ---
+        function iniciarSesion(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            if(user === 'admin' && pass === '1234') {
+                document.getElementById('view-login').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('view-login').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    renderizarTablero(); // Cargar datos del semáforo al entrar
+                }, 300);
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function cerrarSesion() {
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('view-login').classList.remove('hidden');
+            document.getElementById('view-login').style.opacity = '1';
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('password').value = '';
+        }
+
+        // --- 3. Navegación entre Vistas ---
+        function cambiarVista(vista) {
+            // Ocultar todas
+            document.getElementById('view-radicacion').classList.add('hidden');
+            document.getElementById('view-constancia').classList.add('hidden');
+            document.getElementById('view-tablero').classList.add('hidden');
+            
+            // Quitar estilos activos del menú
+            document.getElementById('nav-radicacion').classList.remove('bg-blue-600');
+            document.getElementById('nav-tablero').classList.remove('bg-blue-600');
+            
+            // Mostrar la seleccionada
+            document.getElementById('view-' + vista).classList.remove('hidden');
+            
+            if(vista === 'radicacion' || vista === 'constancia') {
+                document.getElementById('nav-radicacion').classList.add('bg-blue-600');
+                document.getElementById('header-title').innerText = 'Radicación de Documentos (CU1)';
+                if(vista === 'radicacion') document.getElementById('form-radicar').reset();
+            } else if (vista === 'tablero') {
+                document.getElementById('nav-tablero').classList.add('bg-blue-600');
+                document.getElementById('header-title').innerText = 'Tablero de Control y Trazabilidad (CU2/CU3)';
+                renderizarTablero();
+            }
+        }
+
+        // --- 4. Lógica de Radicación (Simulando Backend Inmutable) ---
+        let consecutivoDiario = 100; // Iniciamos en 100 para simular que ya hubo radicados hoy
+
+        function procesarRadicacion(e) {
+            e.preventDefault();
+            
+            // Extraer datos del formulario
+            const prefijo = document.getElementById('doc_tipo').value;
+            const dependencia = document.getElementById('doc_dependencia').value;
+            const remitente = document.getElementById('doc_remitente').value;
+            
+            // Formatear Fecha AAAAMMDD
+            const year = hoy.getFullYear();
+            const month = String(hoy.getMonth() + 1).padStart(2, '0');
+            const day = String(hoy.getDate()).padStart(2, '0');
+            const fechaStr = `${year}${month}${day}`;
+            
+            // Generar Consecutivo secuencial (Garantiza inmutabilidad)
+            consecutivoDiario++;
+            const seqStr = String(consecutivoDiario).padStart(4, '0');
+            
+            // Armar Radicado Final
+            const radicadoOficial = `${prefijo}${fechaStr}${seqStr}`;
+            
+            // Llenar Constancia
+            document.getElementById('lbl-radicado').innerText = radicadoOficial;
+            document.getElementById('lbl-fecha').innerText = `${day}/${month}/${year} ${hoy.getHours()}:${String(hoy.getMinutes()).padStart(2,'0')}`;
+            document.getElementById('lbl-remitente').innerText = remitente;
+            document.getElementById('lbl-dependencia').innerText = dependencia;
+
+            // Guardar en "Base de datos" para que aparezca en el tablero
+            if(prefijo === 'CEX') {
+                expedientes.unshift({
+                    rad: radicadoOficial,
+                    fecha: `${day}/${month}/${year}`,
+                    rem: remitente,
+                    dep: dependencia,
+                    diasRestantes: 15, // Petición nueva, 15 días hábiles
+                    estado: 'Radicado'
+                });
+            }
+
+            cambiarVista('constancia');
+        }
+
+        // --- 5. Lógica del Semáforo (Renderizado) ---
+        function renderizarTablero() {
+            const tbody = document.getElementById('tabla-datos');
+            tbody.innerHTML = ''; // Limpiar tabla
+
+            expedientes.forEach(exp => {
+                // Lógica de colores del semáforo
+                let bgRow = '';
+                let colorText = '';
+                let badgeClass = '';
+                let iconClass = '';
+                let textoDias = '';
+
+                if (exp.diasRestantes > 3) {
+                    // VERDE
+                    colorText = 'text-green-800';
+                    badgeClass = 'bg-green-100 border-green-300';
+                    iconClass = 'fa-circle text-green-500 text-[8px]';
+                    textoDias = `Quedan ${exp.diasRestantes} días`;
+                } else if (exp.diasRestantes >= 0) {
+                    // NARANJA
+                    colorText = 'text-orange-800';
+                    badgeClass = 'bg-orange-100 border-orange-300';
+                    iconClass = 'fa-triangle-exclamation text-orange-500';
+                    textoDias = exp.diasRestantes === 0 ? 'Vence hoy' : `Vence en ${exp.diasRestantes} días`;
+                } else {
+                    // ROJO
+                    bgRow = 'bg-red-50';
+                    colorText = 'text-red-800';
+                    badgeClass = 'bg-red-100 border-red-300';
+                    iconClass = 'fa-circle-xmark text-red-500';
+                    textoDias = `Vencido (${Math.abs(exp.diasRestantes)} días mora)`;
+                }
+
+                // Generar HTML de la fila
+                const fila = `
+                    <tr class="${bgRow} hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-blue-600">${exp.rad}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 font-medium">${exp.rem}</div>
+                            <div class="text-xs text-gray-500">${exp.fecha}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${exp.dep}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass} ${colorText} border">
+                                <i class="fa-solid ${iconClass} mr-1.5"></i> ${textoDias}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm">
+                            <span class="font-medium ${exp.estado === 'Mora' ? 'text-red-600 font-bold' : 'text-gray-600'}">${exp.estado}</span>
+                            <button class="ml-3 text-gray-400 hover:text-blue-600"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += fila;
+            });
+        }
+    </script>
+</body>
+</html>
